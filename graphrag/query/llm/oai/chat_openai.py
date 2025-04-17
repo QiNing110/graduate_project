@@ -222,7 +222,15 @@ class ChatOpenAI(BaseLLM, OpenAILLMImpl):
                 except StopIteration:
                     break
             return full_response
-        return response.choices[0].message.content or ""  # type: ignore
+        s = response.choices[0].message.content
+        if '</think>\n\n' in s:
+            result = s.split('</think>\n\n', 1)[1]
+        elif '</think>' in s:
+            result = s.split('</think>', 1)[1]
+        else:
+            # 处理没有分隔符的情况
+            result = s  # 或者根据需求进行其他处理
+        return result or ""  # type: ignore
 
     def _stream_generate(
         self,
@@ -295,7 +303,15 @@ class ChatOpenAI(BaseLLM, OpenAILLMImpl):
                     break
             return full_response
 
-        return response.choices[0].message.content or ""  # type: ignore
+        s = response.choices[0].message.content
+        if '</think>\n\n' in s:
+            result = s.split('</think>\n\n', 1)[1]
+        elif '</think>' in s:
+            result = s.split('</think>', 1)[1]
+        else:
+            # 处理没有分隔符的情况
+            result = s  # 或者根据需求进行其他处理
+        return result or ""  # type: ignore
 
     async def _astream_generate(
         self,

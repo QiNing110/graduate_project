@@ -53,7 +53,18 @@ class OpenAIChatLLM(BaseLLM[CompletionInput, CompletionOutput]):
         completion = await self.client.chat.completions.create(
             messages=messages, **args
         )
-        return completion.choices[0].message.content
+
+        s = completion.choices[0].message.content
+        if '</think>\n\n' in s:
+            result = s.split('</think>\n\n', 1)[1]
+        elif '</think>' in s:
+            result = s.split('</think>', 1)[1]
+        else:
+            # 处理没有分隔符的情况
+            result = s  # 或者根据需求进行其他处理
+
+        return result or ""  # type: ignore
+
 
     async def _invoke_json(
         self,
