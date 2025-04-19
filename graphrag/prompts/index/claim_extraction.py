@@ -4,58 +4,62 @@
 """A file containing prompts definition."""
 
 CLAIM_EXTRACTION_PROMPT = """
--Target activity-
-You are an intelligent assistant that helps a human analyst to analyze claims against certain entities presented in a text document.
+### 目标活动
+您是一位智能助手，帮助人类分析师分析文本文件中针对某些实体提出的索赔。
 
--Goal-
-Given a text document that is potentially relevant to this activity, an entity specification, and a claim description, extract all entities that match the entity specification and all claims against those entities.
+###  目标
+给定一份可能与该活动相关的文本文件、一个实体规范以及一个声明描述，提取所有符合该实体规范的实体以及针对这些实体的所有声明。
 
--Steps-
-1. Extract all named entities that match the predefined entity specification. Entity specification can either be a list of entity names or a list of entity types.
-2. For each entity identified in step 1, extract all claims associated with the entity. Claims need to match the specified claim description, and the entity should be the subject of the claim.
-For each claim, extract the following information:
-- Subject: name of the entity that is subject of the claim, capitalized. The subject entity is one that committed the action described in the claim. Subject needs to be one of the named entities identified in step 1.
-- Object: name of the entity that is object of the claim, capitalized. The object entity is one that either reports/handles or is affected by the action described in the claim. If object entity is unknown, use **NONE**.
-- Claim Type: overall category of the claim, capitalized. Name it in a way that can be repeated across multiple text inputs, so that similar claims share the same claim type
-- Claim Status: **TRUE**, **FALSE**, or **SUSPECTED**. TRUE means the claim is confirmed, FALSE means the claim is found to be False, SUSPECTED means the claim is not verified.
-- Claim Description: Detailed description explaining the reasoning behind the claim, together with all the related evidence and references.
-- Claim Date: Period (start_date, end_date) when the claim was made. Both start_date and end_date should be in ISO-8601 format. If the claim was made on a single date rather than a date range, set the same date for both start_date and end_date. If date is unknown, return **NONE**.
-- Claim Source Text: List of **all** quotes from the original text that are relevant to the claim.
+###  步骤 
+1. 提取所有符合预定义实体规范的命名实体。实体规范可以是实体名称列表，也可以是实体类型列表。
+2. 对于在步骤 1 中识别出的每个实体，提取与该实体相关的所有声明。声明需要与指定的声明描述相匹配，并且该实体应是声明的主体。
+对于每个声明，提取以下信息：
+- 主体：声明主体的实体名称，首字母大写。主体实体是执行声明中所述行为的实体。主体必须是步骤 1 中识别出的命名实体之一。
+- 宾语：声明宾语的实体名称，首字母大写。宾语实体是报告/处理或受声明中所述行为影响的实体。如果宾语实体未知，则使用 **NONE**。
+- 声明类型：声明的整体类别，首字母大写。以一种可以在多个文本输入中重复使用的方式命名，以便相似的声明具有相同的声明类型。
+- 声明状态：**TRUE**、**FALSE** 或 **SUSPECTED**。TRUE 表示声明已确认，FALSE 表示声明被发现为假，SUSPECTED 表示声明未被验证。
+- 声明描述：详细说明声明背后的原因，以及所有相关证据和参考。- 索赔日期：索赔提出的期间（起始日期，结束日期）。起始日期和结束日期均应采用 ISO-8601 格式。如果索赔是在单个日期提出的，而非一个日期范围，则起始日期和结束日期应设置为相同的日期。如果日期未知，则返回 **NONE**。
+- 索赔原始文本：与索赔相关的原始文本中的所有引述的列表。
 
-Format each claim as (<subject_entity>{tuple_delimiter}<object_entity>{tuple_delimiter}<claim_type>{tuple_delimiter}<claim_status>{tuple_delimiter}<claim_start_date>{tuple_delimiter}<claim_end_date>{tuple_delimiter}<claim_description>{tuple_delimiter}<claim_source>)
+将每个声明格式化为
+`(<主体实体>{tuple_delimiter}<客体实体>{tuple_delimiter}<声明类型>{tuple_delimiter}<声明状态>{tuple_delimiter}<声明开始日期>{tuple_delimiter}<声明结束日期>{tuple_delimiter}<声明描述>{tuple_delimiter}<声明来源>)`
 
-3. Return output in English as a single list of all the claims identified in steps 1 and 2. Use **{record_delimiter}** as the list delimiter.
+3. 将步骤 1 和步骤 2 中识别出的所有声明以单个列表返回。使用 **{record_delimiter}** 作为列表分隔符。
+4. 完成时，输出 {completion_delimiter}
 
-4. When finished, output {completion_delimiter}
-
--Examples-
-Example 1:
-Entity specification: organization
-Claim description: red flags associated with an entity
-Text: According to an article on 2022/01/10, Company A was fined for bid rigging while participating in multiple public tenders published by Government Agency B. The company is owned by Person C who was suspected of engaging in corruption activities in 2015.
-Output:
-
-(COMPANY A{tuple_delimiter}GOVERNMENT AGENCY B{tuple_delimiter}ANTI-COMPETITIVE PRACTICES{tuple_delimiter}TRUE{tuple_delimiter}2022-01-10T00:00:00{tuple_delimiter}2022-01-10T00:00:00{tuple_delimiter}Company A was found to engage in anti-competitive practices because it was fined for bid rigging in multiple public tenders published by Government Agency B according to an article published on 2022/01/10{tuple_delimiter}According to an article published on 2022/01/10, Company A was fined for bid rigging while participating in multiple public tenders published by Government Agency B.)
+### 示例
+**示例1**：  
+实体说明：组织  
+声明描述：与实体相关的警示信号  
+文本：据 2022 年 1 月 10 日的一篇文章报道，A 公司在参与政府机构 B 发布的多个公开招标时因串通投标被罚款。该公司由 C 个人所有，而 C 个人在 2015 年曾涉嫌腐败活动。  
+######################        
+输出：
+```
+(公司 A{tuple_delimiter}政府机构 B{tuple_delimiter}反竞争行为{tuple_delimiter}TRUE{tuple_delimiter}2022-01-10T00:00:00{tuple_delimiter}2022-01-10T00:00:00{tuple_delimiter}据 2022 年 1 月 10 日发布的一篇文章称，公司 A 因在政府机构 B 发布的多个公共招标中串通投标而被罚款，从而被认定存在反竞争行为{tuple_delimiter}据 2022 年 1 月 10 日发布的一篇文章称，公司 A 在参与政府机构 B 发布的多个公共招标时因串通投标而被罚款。)
 {completion_delimiter}
+```
 
-Example 2:
-Entity specification: Company A, Person C
-Claim description: red flags associated with an entity
-Text: According to an article on 2022/01/10, Company A was fined for bid rigging while participating in multiple public tenders published by Government Agency B. The company is owned by Person C who was suspected of engaging in corruption activities in 2015.
-Output:
-
-(COMPANY A{tuple_delimiter}GOVERNMENT AGENCY B{tuple_delimiter}ANTI-COMPETITIVE PRACTICES{tuple_delimiter}TRUE{tuple_delimiter}2022-01-10T00:00:00{tuple_delimiter}2022-01-10T00:00:00{tuple_delimiter}Company A was found to engage in anti-competitive practices because it was fined for bid rigging in multiple public tenders published by Government Agency B according to an article published on 2022/01/10{tuple_delimiter}According to an article published on 2022/01/10, Company A was fined for bid rigging while participating in multiple public tenders published by Government Agency B.)
+**示例2**：  
+实体说明：公司 A，个人C   
+声明描述：与实体相关的警示信号  
+文本：据 2022 年 1 月 10 日的一篇文章报道，公司 A 在参与政府机构 B 发布的多个公开招标时因串通投标被罚款。该公司由 C 个人所有，而 C 个人在 2015 年曾涉嫌腐败活动。  
+######################       
+输出：
+```
+(公司 A{tuple_delimiter}政府机构 B{tuple_delimiter}反竞争行为{tuple_delimiter}TRUE{tuple_delimiter}2022-01-10T00:00:00{tuple_delimiter}2022-01-10T00：00：00{tuple_delimiter}据 2022 年 1 月 10 日发布的一篇文章称，公司 A 因在政府机构 B 发布的多个公开招标中串通投标而被罚款{tuple_delimiter}据 2022 年 1 月 10 日发布的一篇文章称，公司 A 在参与政府机构 B 发布的多个公开招标时因串通投标而被罚款。)
 {record_delimiter}
-(PERSON C{tuple_delimiter}NONE{tuple_delimiter}CORRUPTION{tuple_delimiter}SUSPECTED{tuple_delimiter}2015-01-01T00:00:00{tuple_delimiter}2015-12-30T00:00:00{tuple_delimiter}Person C was suspected of engaging in corruption activities in 2015{tuple_delimiter}The company is owned by Person C who was suspected of engaging in corruption activities in 2015)
+(人员 C{tuple_delimiter}无{tuple_delimiter}腐败{tuple_delimiter}SUSPECTED{tuple_delimiter}2015-01-01T00：00：00{tuple_delimiter}2015-12-30T00：00：00{tuple_delimiter}人员 C 在 2015 年涉嫌从事腐败活动{tuple_delimiter}该公司由人员 C 所有，而人员 C 在 2015 年涉嫌从事腐败活动。)
 {completion_delimiter}
+```
 
--Real Data-
-Use the following input for your answer.
-Entity specification: {entity_specs}
-Claim description: {claim_description}
-Text: {input_text}
-Output:"""
+### 真实数据
+实体说明：`{entity_specs}`
+声明描述：`{claim_description}`   
+文本：`{input_text}`   
+######################  
+输出：
+"""
 
 
-CONTINUE_PROMPT = "MANY entities were missed in the last extraction.  Add them below using the same format:\n"
-LOOP_PROMPT = "It appears some entities may have still been missed.  Answer YES {tuple_delimiter} NO if there are still entities that need to be added.\n"
+CONTINUE_PROMPT = "在上一次提取过程中遗漏了许多实体和关系。请务必 **仅** 输出与之前提取过的任何类型相匹配的实体。使用相同的格式将它们添加到下面：\n"
+LOOP_PROMPT = "似乎有些实体和关系可能仍未被涵盖。如果还有需要添加的实体或关系，请回答 YES 或 NO 。\n"

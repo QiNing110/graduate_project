@@ -4,16 +4,15 @@
 """A file containing prompts definition."""
 
 SUMMARIZE_PROMPT = """
-You are a helpful assistant responsible for generating a comprehensive summary of the data provided below.
-Given one or two entities, and a list of descriptions, all related to the same entity or group of entities.
-Please concatenate all of these into a single, comprehensive description. Make sure to include information collected from all the descriptions.
-If the provided descriptions are contradictory, please resolve the contradictions and provide a single, coherent summary.
-Make sure it is written in third person, and include the entity names so we have the full context.
-
+您是一位负责生成以下所提供数据的全面总结的助手。
+给定一个或两个实体，以及一系列与同一实体或一组实体相关的描述。
+请将所有这些内容合并成一个全面的、综合性的描述。务必包含从所有描述中收集到的信息。
+如果所提供的描述相互矛盾，请解决这些矛盾并提供一个单一、连贯的总结。
+确保使用第三人称表述，并包含实体名称，以便我们了解完整的上下文。
 #######
--Data-
-Entities: {entity_name}
-Description List: {description_list}
+## 数据
+实体: {entity_name}
+描述列表: {description_list}
 #######
-Output:
+输出:
 """

@@ -4,126 +4,80 @@
 """A file containing prompts definition."""
 
 GRAPH_EXTRACTION_PROMPT = """
--Goal-
-Given a text document that is potentially relevant to this activity and a list of entity types, identify all entities of those types from the text and all relationships among the identified entities.
- 
--Steps-
-1. Identify all entities. For each identified entity, extract the following information:
-- entity_name: Name of the entity, capitalized
-- entity_type: One of the following types: [{entity_types}]
-- entity_description: Comprehensive description of the entity's attributes and activities
-Format each entity as ("entity"{tuple_delimiter}<entity_name>{tuple_delimiter}<entity_type>{tuple_delimiter}<entity_description>)
- 
-2. From the entities identified in step 1, identify all pairs of (source_entity, target_entity) that are *clearly related* to each other.
-For each pair of related entities, extract the following information:
-- source_entity: name of the source entity, as identified in step 1
-- target_entity: name of the target entity, as identified in step 1
-- relationship_description: explanation as to why you think the source entity and the target entity are related to each other
-- relationship_strength: a numeric score indicating strength of the relationship between the source entity and target entity
- Format each relationship as ("relationship"{tuple_delimiter}<source_entity>{tuple_delimiter}<target_entity>{tuple_delimiter}<relationship_description>{tuple_delimiter}<relationship_strength>)
- 
-3. Return output in English as a single list of all the entities and relationships identified in steps 1 and 2. Use **{record_delimiter}** as the list delimiter.
- 
-4. When finished, output {completion_delimiter}
- 
+### 目标  
+给定一个可能与该活动相关的文本文档及实体类型列表，从文本中识别所有指定类型的实体及这些实体之间的关系。  
+
+### 步骤  
+1. **识别所有实体**  
+   对每个实体提取以下信息：  
+   - **实体名称**（文中的实体）  
+   - **实体类型**（从 `{entity_types}` 中选择）  
+   - **实体描述**（详细描述属性及活动）  
+   格式：`("entity"{tuple_delimiter}<实体名称>{tuple_delimiter}<实体类型>{tuple_delimiter}<实体描述>)`  
+
+2. **识别实体关系**  
+   从步骤1的实体中，识别所有**明确相关**的（源实体，目标实体）关系对。  
+   对每对关系提取以下信息：  
+   - **源实体**（步骤1中的名称）  
+   - **目标实体**（步骤1中的名称）  
+   - **关系描述**（解释两者如何关联）  
+   - **关系强度**（数值，表示关联强度，范围1-10）  
+   格式：`("relationship"{tuple_delimiter}<源实体>{tuple_delimiter}<目标实体>{tuple_delimiter}<关系描述>{tuple_delimiter}<关系强度>)`  
+
+3. **输出格式**  
+   将步骤1和2的结果合并为一个列表，用 `{record_delimiter}` 分隔每条记录，最终以 `{completion_delimiter}` 结尾。  
+
+### 关键注意事项  
+- 仅识别**明确提及**的实体和关系。  
+- 关系强度需基于上下文逻辑评分（如直接隶属关系为9，间接关联为2）。  
+- 保留占位符符号（如 `|`），勿替换为其他字符。确保分隔符和结构正确。  
+- 仅输出按照要求格式的实体及其关系，不得输出其他任何无关内容。 
+
 ######################
--Examples-
+
+### 示例  
+**示例1**  
+实体类型：`ORGANIZATION, PERSON`  
+文本：  
+维达尼斯公司的中央机构定于周一和周四举行会议，该机构计划于太平洋夏令时周四下午 1 点 30 分发布其最新的政策决定，随后将召开新闻发布会，届时中央机构主席马丁·史密斯将回答问题。投资者预计市场策略委员会将把基准利率维持在 3.5%-3.75%的区间内不变。
 ######################
-Example 1:
-Entity_types: ORGANIZATION,PERSON
-Text:
-The Verdantis's Central Institution is scheduled to meet on Monday and Thursday, with the institution planning to release its latest policy decision on Thursday at 1:30 p.m. PDT, followed by a press conference where Central Institution Chair Martin Smith will take questions. Investors expect the Market Strategy Committee to hold its benchmark interest rate steady in a range of 3.5%-3.75%.
-######################
-Output:
-("entity"{tuple_delimiter}CENTRAL INSTITUTION{tuple_delimiter}ORGANIZATION{tuple_delimiter}The Central Institution is the Federal Reserve of Verdantis, which is setting interest rates on Monday and Thursday)
+输出：
+```
+("entity"{tuple_delimiter}中央机构{tuple_delimiter}ORGANIZATION{tuple_delimiter}中央机构是位于维德纳蒂斯的联邦储备银行，它会在周一和周四设定利率。)
 {record_delimiter}
-("entity"{tuple_delimiter}MARTIN SMITH{tuple_delimiter}PERSON{tuple_delimiter}Martin Smith is the chair of the Central Institution)
+("entity"{tuple_delimiter}马丁·史密斯{tuple_delimiter}PERSON{tuple_delimiter}马丁·史密斯是中央机构的主席。)
 {record_delimiter}
-("entity"{tuple_delimiter}MARKET STRATEGY COMMITTEE{tuple_delimiter}ORGANIZATION{tuple_delimiter}The Central Institution committee makes key decisions about interest rates and the growth of Verdantis's money supply)
+("entity"{tuple_delimiter}市场策略委员会{tuple_delimiter}ORGANIZATION{tuple_delimiter}中央机构委员会负责做出有关利率以及维达尼斯货币供应量增长的关键决策。)
 {record_delimiter}
-("relationship"{tuple_delimiter}MARTIN SMITH{tuple_delimiter}CENTRAL INSTITUTION{tuple_delimiter}Martin Smith is the Chair of the Central Institution and will answer questions at a press conference{tuple_delimiter}9)
+("relationship"{tuple_delimiter}马丁·史密斯{tuple_delimiter}中央机构{tuple_delimiter}马丁·史密斯是中央机构的主席，他将在新闻发布会上回答问题。{tuple_delimiter}9)
 {completion_delimiter}
+```
 
-######################
-Example 2:
-Entity_types: ORGANIZATION
-Text:
-TechGlobal's (TG) stock skyrocketed in its opening day on the Global Exchange Thursday. But IPO experts warn that the semiconductor corporation's debut on the public markets isn't indicative of how other newly listed companies may perform.
+**示例2**  
+实体类型：`ORGANIZATION`  
+文本： 
+周四，在全球交易所上市交易的 TechGlobal（TG）公司的股票在开盘首日飙升。但首次公开募股（IPO）专家警告称，这家半导体公司的首次公开上市表现并不能代表其他新上市公司的表现情况。
 
-TechGlobal, a formerly public company, was taken private by Vision Holdings in 2014. The well-established chip designer says it powers 85% of premium smartphones.
+TechGlobal 原是一家上市公司，于 2014 年被 Vision Holdings 收购转为私有企业。这家成熟的芯片设计公司表示，其产品为 85%的高端智能手机提供动力支持。
 ######################
-Output:
-("entity"{tuple_delimiter}TECHGLOBAL{tuple_delimiter}ORGANIZATION{tuple_delimiter}TechGlobal is a stock now listed on the Global Exchange which powers 85% of premium smartphones)
+输出：
+("entity"{tuple_delimiter}TechGlobal{tuple_delimiter}ORGANIZATION{tuple_delimiter}TechGlobal 是一家现已在环球交易所上市的公司，其产品为 85% 的高端智能手机提供动力支持。)
 {record_delimiter}
-("entity"{tuple_delimiter}VISION HOLDINGS{tuple_delimiter}ORGANIZATION{tuple_delimiter}Vision Holdings is a firm that previously owned TechGlobal)
+("entity"{tuple_delimiter}Vision Holdings{tuple_delimiter}ORGANIZATION{tuple_delimiter}Vision Holdings是一家此前拥有TechGlobal公司的企业。)
 {record_delimiter}
-("relationship"{tuple_delimiter}TECHGLOBAL{tuple_delimiter}VISION HOLDINGS{tuple_delimiter}Vision Holdings formerly owned TechGlobal from 2014 until present{tuple_delimiter}5)
+("relationship"{tuple_delimiter}TechGlobal{tuple_delimiter}Vision Holdings{tuple_delimiter}Vision Holdings公司自 2014 年起就一直拥有TechGlobal公司，直至目前。{tuple_delimiter}5)
 {completion_delimiter}
+######################
+
 
 ######################
-Example 3:
-Entity_types: ORGANIZATION,GEO,PERSON
-Text:
-Five Aurelians jailed for 8 years in Firuzabad and widely regarded as hostages are on their way home to Aurelia.
-
-The swap orchestrated by Quintara was finalized when $8bn of Firuzi funds were transferred to financial institutions in Krohaara, the capital of Quintara.
-
-The exchange initiated in Firuzabad's capital, Tiruzia, led to the four men and one woman, who are also Firuzi nationals, boarding a chartered flight to Krohaara.
-
-They were welcomed by senior Aurelian officials and are now on their way to Aurelia's capital, Cashion.
-
-The Aurelians include 39-year-old businessman Samuel Namara, who has been held in Tiruzia's Alhamia Prison, as well as journalist Durke Bataglani, 59, and environmentalist Meggie Tazbah, 53, who also holds Bratinas nationality.
+### 实际数据  
+实体类型：`{entity_types}`  
+文本：`{input_text}`  
 ######################
-Output:
-("entity"{tuple_delimiter}FIRUZABAD{tuple_delimiter}GEO{tuple_delimiter}Firuzabad held Aurelians as hostages)
-{record_delimiter}
-("entity"{tuple_delimiter}AURELIA{tuple_delimiter}GEO{tuple_delimiter}Country seeking to release hostages)
-{record_delimiter}
-("entity"{tuple_delimiter}QUINTARA{tuple_delimiter}GEO{tuple_delimiter}Country that negotiated a swap of money in exchange for hostages)
-{record_delimiter}
-{record_delimiter}
-("entity"{tuple_delimiter}TIRUZIA{tuple_delimiter}GEO{tuple_delimiter}Capital of Firuzabad where the Aurelians were being held)
-{record_delimiter}
-("entity"{tuple_delimiter}KROHAARA{tuple_delimiter}GEO{tuple_delimiter}Capital city in Quintara)
-{record_delimiter}
-("entity"{tuple_delimiter}CASHION{tuple_delimiter}GEO{tuple_delimiter}Capital city in Aurelia)
-{record_delimiter}
-("entity"{tuple_delimiter}SAMUEL NAMARA{tuple_delimiter}PERSON{tuple_delimiter}Aurelian who spent time in Tiruzia's Alhamia Prison)
-{record_delimiter}
-("entity"{tuple_delimiter}ALHAMIA PRISON{tuple_delimiter}GEO{tuple_delimiter}Prison in Tiruzia)
-{record_delimiter}
-("entity"{tuple_delimiter}DURKE BATAGLANI{tuple_delimiter}PERSON{tuple_delimiter}Aurelian journalist who was held hostage)
-{record_delimiter}
-("entity"{tuple_delimiter}MEGGIE TAZBAH{tuple_delimiter}PERSON{tuple_delimiter}Bratinas national and environmentalist who was held hostage)
-{record_delimiter}
-("relationship"{tuple_delimiter}FIRUZABAD{tuple_delimiter}AURELIA{tuple_delimiter}Firuzabad negotiated a hostage exchange with Aurelia{tuple_delimiter}2)
-{record_delimiter}
-("relationship"{tuple_delimiter}QUINTARA{tuple_delimiter}AURELIA{tuple_delimiter}Quintara brokered the hostage exchange between Firuzabad and Aurelia{tuple_delimiter}2)
-{record_delimiter}
-("relationship"{tuple_delimiter}QUINTARA{tuple_delimiter}FIRUZABAD{tuple_delimiter}Quintara brokered the hostage exchange between Firuzabad and Aurelia{tuple_delimiter}2)
-{record_delimiter}
-("relationship"{tuple_delimiter}SAMUEL NAMARA{tuple_delimiter}ALHAMIA PRISON{tuple_delimiter}Samuel Namara was a prisoner at Alhamia prison{tuple_delimiter}8)
-{record_delimiter}
-("relationship"{tuple_delimiter}SAMUEL NAMARA{tuple_delimiter}MEGGIE TAZBAH{tuple_delimiter}Samuel Namara and Meggie Tazbah were exchanged in the same hostage release{tuple_delimiter}2)
-{record_delimiter}
-("relationship"{tuple_delimiter}SAMUEL NAMARA{tuple_delimiter}DURKE BATAGLANI{tuple_delimiter}Samuel Namara and Durke Bataglani were exchanged in the same hostage release{tuple_delimiter}2)
-{record_delimiter}
-("relationship"{tuple_delimiter}MEGGIE TAZBAH{tuple_delimiter}DURKE BATAGLANI{tuple_delimiter}Meggie Tazbah and Durke Bataglani were exchanged in the same hostage release{tuple_delimiter}2)
-{record_delimiter}
-("relationship"{tuple_delimiter}SAMUEL NAMARA{tuple_delimiter}FIRUZABAD{tuple_delimiter}Samuel Namara was a hostage in Firuzabad{tuple_delimiter}2)
-{record_delimiter}
-("relationship"{tuple_delimiter}MEGGIE TAZBAH{tuple_delimiter}FIRUZABAD{tuple_delimiter}Meggie Tazbah was a hostage in Firuzabad{tuple_delimiter}2)
-{record_delimiter}
-("relationship"{tuple_delimiter}DURKE BATAGLANI{tuple_delimiter}FIRUZABAD{tuple_delimiter}Durke Bataglani was a hostage in Firuzabad{tuple_delimiter}2)
-{completion_delimiter}
+输出:
 
-######################
--Real Data-
-######################
-Entity_types: {entity_types}
-Text: {input_text}
-######################
-Output:"""
+"""
 
-CONTINUE_PROMPT = "MANY entities and relationships were missed in the last extraction. Remember to ONLY emit entities that match any of the previously extracted types. Add them below using the same format:\n"
-LOOP_PROMPT = "It appears some entities and relationships may have still been missed.  Answer YES | NO if there are still entities or relationships that need to be added.\n"
+CONTINUE_PROMPT = "在上一次提取过程中遗漏了许多实体和关系。请务必 **仅** 输出与之前提取过的任何类型相匹配的实体。使用相同的格式将它们添加到下面：\n"
+LOOP_PROMPT = "似乎有些实体和关系可能仍未被涵盖。如果还有需要添加的实体或关系，请回答 YES 或 NO 。\n"
