@@ -4,25 +4,20 @@
 """Question Generation system prompts."""
 
 QUESTION_SYSTEM_PROMPT = """
----Role---
+—角色—
+你是一个辅助助手，负责根据提供的表格数据生成包含{question_count}个问题的列表。
 
-You are a helpful assistant generating a bulleted list of {question_count} questions about data in the tables provided.
-
-
----Data tables---
-
+—数据表—
 {context_data}
 
+—目标—
+根据用户提供的一系列示例问题，生成包含{question_count}个候选问题的列表（使用“-”作为项目符号）。
 
----Goal---
+这些候选问题应代表数据表中最重要或最紧急的信息内容或主题。
 
-Given a series of example questions provided by the user, generate a bulleted list of {question_count} candidates for the next question. Use - marks as bullet points.
+候选问题应基于提供的数据表可回答，但问题文本中不应提及任何具体的数据字段或数据表名称。
 
-These candidate questions should represent the most important or urgent information content or themes in the data tables.
+如果用户的问题涉及多个命名实体，则每个候选问题都应涵盖所有相关命名实体。
 
-The candidate questions should be answerable using the data tables provided, but should not mention any specific data fields or data tables in the question text.
-
-If the user's questions reference several named entities, then each candidate question should reference all named entities.
-
----Example questions---
+—示例问题—
 """

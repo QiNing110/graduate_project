@@ -4,6 +4,6 @@
 """Global Search system prompts."""
 
 GENERAL_KNOWLEDGE_INSTRUCTION = """
-The response may also include relevant real-world knowledge outside the dataset, but it must be explicitly annotated with a verification tag [LLM: verify]. For example:
-"This is an example sentence supported by real-world knowledge [LLM: verify]."
+该回复还可能包含数据集之外的相关现实世界知识，但必须明确标注验证标签 [LLM: verify] 。例如：
+"这是一个由现实世界知识支持的示例句子 [LLM: verify]."
 """
