@@ -45,7 +45,7 @@ class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
         encoding_name: str = "cl100k_base",
         max_tokens: int = 8191,
         max_retries: int = 10,
-        request_timeout: float = 180.0,
+        request_timeout: float = 360.0,
         retry_error_types: tuple[type[BaseException]] = OPENAI_RETRY_ERROR_TYPES,  # type: ignore
         reporter: StatusLogger | None = None,
     ):

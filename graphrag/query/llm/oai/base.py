@@ -100,7 +100,7 @@ class OpenAILLMImpl(BaseOpenAILLM):
         api_type: OpenaiApiType = OpenaiApiType.OpenAI,
         organization: str | None = None,
         max_retries: int = 10,
-        request_timeout: float = 180.0,
+        request_timeout: float = 360.0,
         reporter: StatusLogger | None = None,
     ):
         self.api_key = api_key
