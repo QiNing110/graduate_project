@@ -127,6 +127,7 @@ async def extract_entities(
         nonlocal num_started
         text = row[text_column]
         id = row[id_column]
+        # 调用 _ _call_ _() ——> execute_llm()
         result = await strategy_exec(
             [Document(text=text, id=id)],
             entity_types,

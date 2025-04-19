@@ -97,6 +97,7 @@ def create_pipeline_config(settings: GraphRagConfig, verbose=False) -> PipelineC
 
     result = PipelineConfig(
         root_dir=settings.root_dir,
+        # 根据传入的是csv还是txt进行不同的读取配置
         input=_get_pipeline_input_config(settings),
         reporting=_get_reporting_config(settings),
         storage=_get_storage_config(settings, settings.storage),

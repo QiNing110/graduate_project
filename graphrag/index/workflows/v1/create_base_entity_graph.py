@@ -10,7 +10,7 @@ from datashaper import (
 from graphrag.index.config.workflow import PipelineWorkflowConfig, PipelineWorkflowStep
 
 workflow_name = "create_base_entity_graph"
-
+# 依据给定的配置创建一个用于构建实体图的工作流步骤。
 
 def build_steps(
     config: PipelineWorkflowConfig,

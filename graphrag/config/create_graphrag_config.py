@@ -60,10 +60,11 @@ InputModelValidator = TypeAdapter(GraphRagConfigInput)
 def create_graphrag_config(
     values: GraphRagConfigInput | None = None, root_dir: str | None = None
 ) -> GraphRagConfig:
+    # GraphRagConfigInput:用户指定的config（通过--config传进来）
     """Load Configuration Parameters from a dictionary."""
     values = values or {}
     root_dir = root_dir or str(Path.cwd())
-    env = _make_env(root_dir)
+    env = _make_env(root_dir) #读取环境文件 .env
     _token_replace(cast(dict, values))
     InputModelValidator.validate_python(values, strict=True)
 
@@ -208,6 +209,7 @@ def create_graphrag_config(
     fallback_oai_base = env("OPENAI_BASE_URL", None)
     fallback_oai_version = env("OPENAI_API_VERSION", None)
 
+    # 读settings.yml中 GraphRAG块中的内容
     with reader.envvar_prefix(Section.graphrag), reader.use(values):
         async_mode = reader.str(Fragment.async_mode)
         async_mode = AsyncType(async_mode) if async_mode else defs.ASYNC_MODE
@@ -217,7 +219,7 @@ def create_graphrag_config(
         fallback_oai_base = reader.str(Fragment.api_base) or fallback_oai_base
         fallback_oai_version = reader.str(Fragment.api_version) or fallback_oai_version
         fallback_oai_proxy = reader.str(Fragment.api_proxy)
-
+        # 读settings.yml中 llm块中的内容
         with reader.envvar_prefix(Section.llm):
             with reader.use(values.get("llm")):
                 llm_type = reader.str(Fragment.type)
@@ -243,7 +245,7 @@ def create_graphrag_config(
                 sleep_on_rate_limit = reader.bool(Fragment.sleep_recommendation)
                 if sleep_on_rate_limit is None:
                     sleep_on_rate_limit = defs.LLM_SLEEP_ON_RATE_LIMIT_RECOMMENDATION
-
+                # 将相关配置存入对应的类实体中
                 llm_model = LLMParameters(
                     api_key=api_key,
                     api_base=api_base,
@@ -420,18 +422,20 @@ def create_graphrag_config(
                 enabled=reader.bool(Fragment.enabled) or defs.UMAP_ENABLED,
             )
 
+        # 实体抽取的配置
         entity_extraction_config = values.get("entity_extraction") or {}
         with (
             reader.envvar_prefix(Section.entity_extraction),
             reader.use(entity_extraction_config),
         ):
+            # max_gleanings 要使用的最大获取周期数
             max_gleanings = reader.int(Fragment.max_gleanings)
             max_gleanings = (
                 max_gleanings
                 if max_gleanings is not None
                 else defs.ENTITY_EXTRACTION_MAX_GLEANINGS
             )
-
+            # 实体抽取任务所使用的模型
             entity_extraction_model = EntityExtractionConfig(
                 llm=hydrate_llm_params(entity_extraction_config, llm_model),
                 parallelization=hydrate_parallelization_params(
