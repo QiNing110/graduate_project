@@ -8,6 +8,7 @@ import logging
 import sys
 import time
 import warnings
+from datetime import datetime
 from pathlib import Path
 
 import graphrag.api as api
@@ -80,7 +81,8 @@ def index_cli(
 ):
     """Run the pipeline with the given config."""
     config = load_config(root_dir, config_filepath)
-
+    print("\n----------------------" + str(datetime.now()) + "开始进入index--------------------\n")
+    start_time = time.time()
     _run_index(
         config=config,
         verbose=verbose,
@@ -93,6 +95,9 @@ def index_cli(
         skip_validation=skip_validation,
         output_dir=output_dir,
     )
+    end_time = time.time()
+    print("\n----------------------" + str(datetime.now()) + "结束index--------------------\n")
+    print(f'index阶段共耗费 {(end_time-start_time)/60} 分钟')
 
 
 def update_cli(

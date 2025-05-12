@@ -5,6 +5,7 @@
 
 import asyncio
 import sys
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -34,6 +35,7 @@ def run_global_search(
 
     Loads index files required for global search and calls the Query API.
     """
+    start_time = time.time()
     root = root_dir.resolve()
     config = load_config(root, config_filepath)
     config.storage.base_dir = str(data_dir) if data_dir else config.storage.base_dir
@@ -100,6 +102,8 @@ def run_global_search(
             query=query,
         )
     )
+    end_time = time.time()
+    print(f'对于{query}的 Global Search 共耗费 {(end_time - start_time) / 60} 分钟')
     reporter.success(f"Global Search Response:\n{response}")
     # NOTE: we return the response and context data here purely as a complete demonstration of the API.
     # External users should use the API directly to get the response and context data.
@@ -119,6 +123,7 @@ def run_local_search(
 
     Loads index files required for local search and calls the Query API.
     """
+    start_time = time.time()
     root = root_dir.resolve()
     config = load_config(root, config_filepath)
     config.storage.base_dir = str(data_dir) if data_dir else config.storage.base_dir
@@ -193,6 +198,8 @@ def run_local_search(
             query=query,
         )
     )
+    end_time = time.time()
+    print(f'对于{query}的 Local Search 共耗费 {(end_time - start_time) / 60} 分钟')
     reporter.success(f"Local Search Response:\n{response}")
     # NOTE: we return the response and context data here purely as a complete demonstration of the API.
     # External users should use the API directly to get the response and context data.
@@ -211,6 +218,7 @@ def run_drift_search(
 
     Loads index files required for local search and calls the Query API.
     """
+    start_time = time.time()
     root = root_dir.resolve()
     config = load_config(root, config_filepath)
     config.storage.base_dir = str(data_dir) if data_dir else config.storage.base_dir
@@ -253,6 +261,8 @@ def run_drift_search(
             query=query,
         )
     )
+    end_time = time.time()
+    print(f'对于{query}的 DRIFT Search 共耗费 {(end_time - start_time) / 60} 分钟')
     reporter.success(f"DRIFT Search Response:\n{response}")
     # NOTE: we return the response and context data here purely as a complete demonstration of the API.
     # External users should use the API directly to get the response and context data.
