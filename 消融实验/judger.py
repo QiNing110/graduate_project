@@ -58,15 +58,14 @@ def load_documents(file_path):
 
 if __name__ == '__main__':
     # 加载数据集与文档
-    test_set_path = "./dataset/fictions_utf8/fictions_testset.json"
-    documents_path = "./dataset/fictions_utf8/三体_合集.txt"
-    test_set = load_testset(test_set_path)
-    documents = load_documents(documents_path)
+    results_path = "./dataset/fictions_utf8/merged_results.json"
+    result_set = load_testset(results_path)
+
 
     # 数据保存到本地准备
-    result_path = "./dataset/fictions_utf8/pure_LLM_fictions_result.csv"
-    output = open(result_path, 'w', encoding='utf-8')
-    output.write("\t".join(["id", "question", "answer"]) + "\n")
+    # result_path = "./dataset/fictions_utf8/pure_LLM_fictions_result.csv"
+    # output = open(result_path, 'w', encoding='utf-8')
+    # output.write("\t".join(["id", "question", "answer"]) + "\n")
 
     # 定义openai sdk
     client = OpenAI(
@@ -75,26 +74,98 @@ if __name__ == '__main__':
         base_url="https://api.deepseek.com",
     )
 
+    json_format = '''
+       {
+            "全面性": {
+                    "Score": {
+                            "答案 1": int,
+                            "答案 2": int,
+                            "答案 3": int,
+                            "答案 4": int,
+                            "答案 5": int,
+                    },
+                    "Reason": ""
+            },
+            "多样性": {
+                    "Score": {
+                            "答案 1": int,
+                            "答案 2": int,
+                            "答案 3": int,
+                            "答案 4": int,
+                            "答案 5": int,
+                    },
+                    "Reason": ""
+            },
+            "赋能性": {
+                    "Score": {
+                            "答案 1": int,
+                            "答案 2": int,
+                            "答案 3": int,
+                            "答案 4": int,
+                            "答案 5": int,
+                    },
+                    "Reason": ""
+            },
+            "直接性": {
+                    "Score": {
+                            "答案 1": int,
+                            "答案 2": int,
+                            "答案 3": int,
+                            "答案 4": int,
+                            "答案 5": int,
+                    },
+                    "Reason": ""
+            }
+            "无重复性": {
+                    "Score": {
+                            "答案 1": int,
+                            "答案 2": int,
+                            "答案 3": int,
+                            "答案 4": int,
+                            "答案 5": int,
+                    },
+                    "Reason": ""
+            }
+    }'''
+
     prompt = '''
-    参考文档（三体三部曲）：{documents}
-
-    请根据参考文档回答用户提出的问题。
-
-    我是一个{role}，我的任务是{task}，我的问题是{question}
+请根据以下内容进行操作：
+问题：{question}
+评价指标：
+1,全面性：答案提供了多少细节，以涵盖问题的所有方面和细节？
+2,多样性：答案在针对问题提供不同的观点和见解方面，丰富程度和多样程度如何？
+3,赋能性：答案在帮助读者理解主题并做出明智判断方面表现得有多好？
+4,直接性：答案在具体且清晰地回答问题方面做得如何？
+5,无重复性：答案在简洁高效没有多余重复内容地回答问题方面做得如何？
+答案 1：{ans1}
+答案 2：{ans2}
+答案 3：{ans3}
+答案 4：{ans4}
+答案 5：{ans5}
+请依据上述问题、对这五个答案在每一个指标维度上进行打分（score 范围为0~10，类型为整数）并详细说明原因。
+输出格式应该为下面的JSON格式：
+{json_format}
     '''
 
-    for item in tqdm(test_set, desc="Processing items", unit="item"):
-        role = item['role']
-        task = item['task']
-        question = item['question']
+    for item in tqdm(result_set, desc="Processing items", unit="item"):
         id = item['id']
-        format_prompt = prompt.format(documents=documents, role=role, task=task, question=question)
+        question = item['question']
+        pure_LLM_eval_results = item['pure_LLM_eval_results']
+        RAG_model_eval_results = item['RAG_model_eval_results']
+        RAG_SFTmodel_eval_results = item['RAG_SFTmodel_eval_results']
+        GraphRAG_SFTmodel_eval_results = item['GraphRAG_SFTmodel_eval_results']
+        GraphRAG_model_eval_results = item['GraphRAG_model_eval_results']
+
+
+        format_prompt = prompt.format(question=question,
+                                      ans1 = pure_LLM_eval_results,ans2=RAG_model_eval_results,
+                                      ans3=RAG_SFTmodel_eval_results, ans4=GraphRAG_SFTmodel_eval_results,ans5=GraphRAG_model_eval_results)
 
         completion = client.chat.completions.create(
             # 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
             model="qwen3-14b",
             messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "system", "content": "你是一个专业的语言分析师"},
                 {"role": "user", "content": format_prompt},
             ],
             stream=True,
