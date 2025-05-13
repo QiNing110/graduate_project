@@ -163,24 +163,19 @@ if __name__ == '__main__':
 
         completion = client.chat.completions.create(
             # 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
-            model="qwen3-14b",
+            model="deepseek-chat",
             messages=[
                 {"role": "system", "content": "你是一个专业的语言分析师"},
                 {"role": "user", "content": format_prompt},
             ],
-            stream=True,
-            extra_body={"enable_thinking": False},
+
         )
 
-        full_content = ""
-        print("输出内容为：")
-        for chunk in completion:
-            # 如果stream_options.include_usage为True，则最后一个chunk的choices字段为空列表，需要跳过（可以通过chunk.usage获取 Token 使用量）
-            if chunk.choices:
-                full_content += chunk.choices[0].delta.content
 
-        response = full_content.replace("\n", '\\n')
-        print(question + '\n' + response)
-        output.write("\t".join([str(id), question, response]) + "\n")
 
-    output.close()
+        response = completion.choices[0].message.content
+
+    #     print(question + '\n' + response)
+    #     output.write("\t".join([str(id), question, response]) + "\n")
+    #
+    # output.close()
