@@ -43,13 +43,19 @@ if __name__ == '__main__':
         format_prompt = prompt.format(role=role, task=task, question=question)
         query_engine = index.as_query_engine()
         response = query_engine.query(format_prompt)
-        print(response)
+        response_str = response.response
+        final_res = ''
+        if "</think>\n" in response_str:
+            final_res = response_str.spilt("</think>\n")[-1]
+        else:
+            final_res = response_str
+        print(final_res)
 
         # 记录结果
         results.append({
             "id": id,
             "question": question,
-            "response": response
+            "response": final_res
         })
 
         # 保存结果
