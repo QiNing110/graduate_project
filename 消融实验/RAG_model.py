@@ -1,4 +1,10 @@
 '''
+
+install ollama:
+开启学术加速：source /etc/network_turbo
+下载ollama：curl -fsSL https://ollama.com/install.sh | sh
+
+ollama ollama run modelscope.cn/unsloth/Qwen3-14B-GGUF:Qwen3-14B-BF16.gguf
 ollama pull nomic-embed-text
 
 pip install llama-index-llms-ollama
@@ -67,7 +73,7 @@ if __name__ == '__main__':
         })
 
         # 保存结果
-    with open("RAG_SFTmodel_eval_results.json", "w") as f:
+    with open("RAG_model_eval_results.json", "w") as f:
         json.dump(results, f, indent=2)
 
 
