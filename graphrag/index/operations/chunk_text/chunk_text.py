@@ -12,7 +12,7 @@ from datashaper import (
     progress_ticker,
 )
 
-from graphrag.index.operations.chunk_text.typing import (
+from graphrag.index.operations.chunk_text.typing_ import (
     ChunkInput,
     ChunkStrategy,
     ChunkStrategyType,
@@ -121,13 +121,13 @@ def load_strategy(strategy: ChunkStrategyType) -> ChunkStrategy:
     """Load strategy method definition."""
     match strategy:
         case ChunkStrategyType.tokens:
-            from graphrag.index.operations.chunk_text.strategies import run_tokens
+            from graphrag.index.operations.chunk_text.strategies_old import run_tokens
 
             return run_tokens
         case ChunkStrategyType.sentence:
             # NLTK
             from graphrag.index.bootstrap import bootstrap
-            from graphrag.index.operations.chunk_text.strategies import run_sentences
+            from graphrag.index.operations.chunk_text.strategies_old import run_sentences
 
             bootstrap()
             return run_sentences
