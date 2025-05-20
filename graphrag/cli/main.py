@@ -2,7 +2,7 @@
 # Licensed under the MIT License
 
 """CLI entrypoint."""
-
+import json
 import os
 import re
 from collections.abc import Callable
@@ -436,7 +436,8 @@ def _query_cli(
                 query=query,
             )
         case SearchType.GLOBAL:
-            run_global_search(
+            results = []
+            response, query,context_data = run_global_search(
                 config_filepath=config,
                 data_dir=data,
                 root_dir=root,
@@ -446,6 +447,15 @@ def _query_cli(
                 streaming=streaming,
                 query=query,
             )
+            results.append({
+                "question": query,
+                "response": response
+            })
+
+            # 保存结果
+            with open("GraphRAG_SFT_LLM_eval_results.json", "w") as f:
+                json.dump(results, f, indent=2)
+
         case SearchType.DRIFT:
             run_drift_search(
                 config_filepath=config,
