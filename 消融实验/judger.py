@@ -58,7 +58,7 @@ def load_documents(file_path):
 
 if __name__ == '__main__':
     # 加载数据集与文档
-    results_path = "./dataset/fictions_utf8/merged_results.json"
+    results_path = "./dataset/fictions_utf8/results/merged_results.json"
     result_set = load_testset(results_path)
 
 
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     # 定义openai sdk
     client = OpenAI(
         # 若没有配置环境变量，请用百炼API Key将下行替换为：api_key="sk-xxx",
-        api_key="sk-274ac4951c314181a6e06cf16dca7318",
+        api_key="sk-6a784eb168794dcd873c445e3890d9db",
         base_url="https://api.deepseek.com",
     )
 
@@ -82,7 +82,7 @@ if __name__ == '__main__':
                             "答案 2": int,
                             "答案 3": int,
                             "答案 4": int,
-                            "答案 5": int,
+                            
                     },
                     "Reason": ""
             },
@@ -92,7 +92,7 @@ if __name__ == '__main__':
                             "答案 2": int,
                             "答案 3": int,
                             "答案 4": int,
-                            "答案 5": int,
+                            
                     },
                     "Reason": ""
             },
@@ -102,7 +102,7 @@ if __name__ == '__main__':
                             "答案 2": int,
                             "答案 3": int,
                             "答案 4": int,
-                            "答案 5": int,
+                            
                     },
                     "Reason": ""
             },
@@ -112,7 +112,7 @@ if __name__ == '__main__':
                             "答案 2": int,
                             "答案 3": int,
                             "答案 4": int,
-                            "答案 5": int,
+                            
                     },
                     "Reason": ""
             }
@@ -122,14 +122,14 @@ if __name__ == '__main__':
                             "答案 2": int,
                             "答案 3": int,
                             "答案 4": int,
-                            "答案 5": int,
+                            
                     },
                     "Reason": ""
             }
     }'''
 
     prompt = '''
-请根据以下内容进行操作：
+现将《三体》三部曲输入给了四个模型，使之根据其内容回答用户问题，生成了四个答案：
 问题：{question}
 评价指标：
 1,全面性：答案提供了多少细节，以涵盖问题的所有方面和细节？
@@ -141,41 +141,79 @@ if __name__ == '__main__':
 答案 2：{ans2}
 答案 3：{ans3}
 答案 4：{ans4}
-答案 5：{ans5}
-请依据上述问题、对这五个答案在每一个指标维度上进行打分（score 范围为0~10，类型为整数）并详细说明原因。
-输出格式应该为下面的JSON格式：
+请依据上述问题、对这四个答案在每一个指标维度上进行打分（score 范围为0~10，类型为整数）并分别对这四个答案的得分作出解释。
+你可能会在答案里看到类似"[Data: Reports (874)]"这样的内容，这是在引用原文。
+输出格式应该为下面的JSON格式，输出纯json格式内容，不需要添加markdown代码块：
 {json_format}
     '''
 
+    complete_prompt = '''
+    请根据以下内容进行操作：
+    问题：{question}
+    评价指标：
+    1,全面性：答案提供了多少细节，以涵盖问题的所有方面和细节？
+    2,多样性：答案在针对问题提供不同的观点和见解方面，丰富程度和多样程度如何？
+    3,赋能性：答案在帮助读者理解主题并做出明智判断方面表现得有多好？
+    4,直接性：答案在具体且清晰地回答问题方面做得如何？
+    5,无重复性：答案在简洁高效没有多余重复内容地回答问题方面做得如何？
+    答案 1：{ans1}
+    答案 2：{ans2}
+    答案 3：{ans3}
+    答案 4：{ans4}
+    答案 5：{ans5}
+    请依据上述问题、对这五个答案在每一个指标维度上进行打分（score 范围为0~10，类型为整数）并详细说明原因。
+    输出格式应该为下面的JSON格式：
+    {json_format}
+        '''
+    judger_responses = []
     for item in tqdm(result_set, desc="Processing items", unit="item"):
         id = item['id']
         question = item['question']
         pure_LLM_eval_results = item['pure_LLM_eval_results']
         RAG_model_eval_results = item['RAG_model_eval_results']
         RAG_SFTmodel_eval_results = item['RAG_SFTmodel_eval_results']
-        GraphRAG_SFTmodel_eval_results = item['GraphRAG_SFTmodel_eval_results']
-        GraphRAG_model_eval_results = item['GraphRAG_model_eval_results']
+        GraphRAG_SFT_LLM_eval_results = item['GraphRAG_SFT_LLM_eval_results']
+        # GraphRAG_model_eval_results = item['GraphRAG_model_eval_results']
 
 
         format_prompt = prompt.format(question=question,
                                       ans1 = pure_LLM_eval_results,ans2=RAG_model_eval_results,
-                                      ans3=RAG_SFTmodel_eval_results, ans4=GraphRAG_SFTmodel_eval_results,ans5=GraphRAG_model_eval_results)
+                                      ans3=RAG_SFTmodel_eval_results, ans4=GraphRAG_SFT_LLM_eval_results,
+                                      json_format=json_format)
 
-        completion = client.chat.completions.create(
-            # 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
-            model="deepseek-chat",
-            messages=[
-                {"role": "system", "content": "你是一个专业的语言分析师"},
-                {"role": "user", "content": format_prompt},
-            ],
+        max_retries = 3  # Maximum number of retries if response is not JSON
+        retry_count = 0
+        response_json = None
 
-        )
+        while retry_count < max_retries:
+            completion = client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[
+                    {"role": "system", "content": "你是一个专业的语言类评委"},
+                    {"role": "user", "content": format_prompt},
+                ],
+            )
 
+            response = completion.choices[0].message.content
 
+            try:
+                # Try to parse the response as JSON
+                response_json = json.loads(response)
+                break  # If successful, exit the retry loop
+            except json.JSONDecodeError:
+                retry_count += 1
+                if retry_count < max_retries:
+                    print(f"Response is not valid JSON, retrying ({retry_count}/{max_retries})...")
+                else:
+                    print(f"Max retries reached for item {id}, response is not valid JSON")
+                    response_json = {"error": "Invalid JSON response", "original_response": response}
 
-        response = completion.choices[0].message.content
+        judger_responses.append({
+            "id": id,
+            "question": question,
+            "judgement": response_json
+        })
 
-    #     print(question + '\n' + response)
-    #     output.write("\t".join([str(id), question, response]) + "\n")
-    #
-    # output.close()
+    with open('judger_responses.json', 'w', encoding='utf-8') as f:
+        json.dump(judger_responses, f, ensure_ascii=False, indent=2)
+
