@@ -1,30 +1,30 @@
-import re
-from typing import Any, List, Optional
+# Copyright (c) 2024 Microsoft Corporation.
+# Licensed under the MIT License
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+"""A module containing chunk strategies."""
+
 from collections.abc import Iterable
+from typing import Any
 
+import nltk
 import tiktoken
 from datashaper import ProgressTicker
 
+# import graphrag.config.defaults as defs
 from graphrag.index.operations.chunk_text.typing_ import TextChunk
 from graphrag.index.text_splitting.text_splitting import Tokenizer
 
 
-
-# CHUNK_SIZE是指在处理大型数据集时，将数据分成多个小块（chunk）时，每个小块的大小。这样做可以有效地管理内存使用，避免一次性加载过多数据导致内存溢出。在这里应根据大模型API请求的上下文 tokens 大小进行设置。
-# CHUNK_OVERLAP是指在处理文本数据时，将文本分成多个小块（chunk）时，相邻块之间重叠的部分。这样做可以确保在分块处理时不会丢失重要信息，特别是在进行文本分类、实体识别等任务时，有助于提高模型的准确性和连贯性。
-DEFAULT_CHUNK_SIZE = 2500  # tokens
-DEFAULT_CHUNK_OVERLAP = 300  # tokens
-
-
-def run(
-        input: list[str], args: dict[str, Any], tick: ProgressTicker
+def run_tokens(
+    input: list[str], args: dict[str, Any], tick: ProgressTicker
 ) -> Iterable[TextChunk]:
-    """切分文本"""
-    tokens_per_chunk = args.get("chunk_size", DEFAULT_CHUNK_SIZE)
-    chunk_overlap = args.get("chunk_overlap", DEFAULT_CHUNK_OVERLAP)
-    encoding_name = args.get("encoding_name", "cl100k_base")
+    """Chunks text into chunks based on encoding tokens."""
+    # tokens_per_chunk = args.get("chunk_size", defs.CHUNK_SIZE)
+    # chunk_overlap = args.get("chunk_overlap", defs.CHUNK_OVERLAP)
+    # encoding_name = args.get("encoding_name", defs.ENCODING_MODEL)
+    tokens_per_chunk = args.get("chunk_size", 200)
+    chunk_overlap = args.get("chunk_overlap", 50)
+    encoding_name = args.get("encoding_name", 'cl100k_base')
     enc = tiktoken.get_encoding(encoding_name)
 
     def encode(text: str) -> list[int]:
@@ -35,7 +35,7 @@ def run(
     def decode(tokens: list[int]) -> str:
         return enc.decode(tokens)
 
-    return split_text_on_tokens(
+    return _split_text_on_tokens(
         input,
         Tokenizer(
             chunk_overlap=chunk_overlap,
@@ -44,125 +44,71 @@ def run(
             decode=decode,
         ),
         tick,
-        chunk_overlap=chunk_overlap,
-        tokens_per_chunk=tokens_per_chunk
     )
 
 
-def split_text_on_tokens(
-        texts: list[str], enc: Tokenizer, tick: ProgressTicker, chunk_overlap, tokens_per_chunk
+# Adapted from - https://github.com/langchain-ai/langchain/blob/77b359edf5df0d37ef0d539f678cf64f5557cb54/libs/langchain/langchain/text_splitter.py#L471
+# So we could have better control over the chunking process
+def _split_text_on_tokens(
+    texts: list[str], enc: Tokenizer, tick: ProgressTicker
 ) -> list[TextChunk]:
+    """Split incoming text and return chunks."""
     result = []
     mapped_ids = []
 
     for source_doc_idx, text in enumerate(texts):
+        encoded = enc.encode(text)
         tick(1)
-        mapped_ids.append((source_doc_idx, text))
+        mapped_ids.append((source_doc_idx, encoded))
 
-    text_splitter = ChineseRecursiveTextSplitter(
-        keep_separator=True, is_separator_regex=True, chunk_size=tokens_per_chunk, chunk_overlap=chunk_overlap
-    )
+    input_ids: list[tuple[int, int]] = [
+        (source_doc_idx, id) for source_doc_idx, ids in mapped_ids for id in ids
+    ]
 
-    for source_doc_idx, text in mapped_ids:
-        chunks = text_splitter.split_text(text)
-        for chunk in chunks:
-            result.append(
-                TextChunk(
-                    text_chunk=chunk,
-                    source_doc_indices=[source_doc_idx] * len(chunk),
-                    n_tokens=len(chunk),
-                )
+    start_idx = 0
+    cur_idx = min(start_idx + enc.tokens_per_chunk, len(input_ids))
+    chunk_ids = input_ids[start_idx:cur_idx]
+    while start_idx < len(input_ids):
+        chunk_text = enc.decode([id for _, id in chunk_ids])
+        doc_indices = list({doc_idx for doc_idx, _ in chunk_ids})
+        result.append(
+            TextChunk(
+                text_chunk=chunk_text,
+                source_doc_indices=doc_indices,
+                n_tokens=len(chunk_ids),
             )
+        )
+        start_idx += enc.tokens_per_chunk - enc.chunk_overlap
+        cur_idx = min(start_idx + enc.tokens_per_chunk, len(input_ids))
+        chunk_ids = input_ids[start_idx:cur_idx]
 
     return result
 
 
-def _split_text_with_regex_from_end(
-        text: str, separator: str, keep_separator: bool
-) -> List[str]:
-    if separator:
-        if keep_separator:
-            # 模式中的括号会保留结果中的分隔符。
-            _splits = re.split(f"({separator})", text)
-            splits = ["".join(i) for i in zip(_splits[0::2], _splits[1::2])]
-            if len(_splits) % 2 == 1:
-                splits += _splits[-1:]
-        else:
-            splits = re.split(separator, text)
-    else:
-        splits = list(text)
-    return [s for s in splits if s != ""]
+def run_sentences(
+    input: list[str], _args: dict[str, Any], tick: ProgressTicker
+) -> Iterable[TextChunk]:
+    """Chunks text into multiple parts by sentence."""
+    for doc_idx, text in enumerate(input):
+        sentences = nltk.sent_tokenize(text)
+        for sentence in sentences:
+            yield TextChunk(
+                text_chunk=sentence,
+                source_doc_indices=[doc_idx],
+            )
+        tick(1)
 
 
-class ChineseRecursiveTextSplitter(RecursiveCharacterTextSplitter):
-    def __init__(
-            self,
-            separators: Optional[List[str]] = None,
-            keep_separator: bool = True,
-            is_separator_regex: bool = True,
-            **kwargs: Any,
-    ) -> None:
-        super().__init__(keep_separator=keep_separator, **kwargs)
-        self._separators = separators or [
-            r"\n\n",
-            r"\n",
-            r"。|！|？",
-            r"\.\s|\!\s|\?\s",
-            r"；|;\s",
-            r"，|,\s",
-        ]
-        self._is_separator_regex = is_separator_regex
-
-    def _split_text(self, text: str, separators: List[str]) -> List[str]:
-        """拆分传入的文本并返回处理后的块。"""
-        final_chunks = []
-        # 获取适当的分隔符以使用
-        separator = separators[-1]
-        new_separators = []
-        for i, _s in enumerate(separators):
-            _separator = _s if self._is_separator_regex else re.escape(_s)
-            if _s == "":
-                separator = _s
-                break
-            if re.search(_separator, text):
-                separator = _s
-                new_separators = separators[i + 1:]
-                break
-
-        _separator = separator if self._is_separator_regex else re.escape(separator)
-        splits = _split_text_with_regex_from_end(text, _separator, self._keep_separator)
-
-        _good_splits = []
-        _separator = "" if self._keep_separator else separator
-        for s in splits:
-            if self._length_function(s) < self._chunk_size:
-                _good_splits.append(s)
-            else:
-                if _good_splits:
-                    merged_text = self._merge_splits(_good_splits, _separator)
-                    final_chunks.extend(merged_text)
-                    _good_splits = []
-                if not new_separators:
-                    final_chunks.append(s)
-                else:
-                    other_info = self._split_text(s, new_separators)
-                    final_chunks.extend(other_info)
-        if _good_splits:
-            merged_text = self._merge_splits(_good_splits, _separator)
-            final_chunks.extend(merged_text)
-        return [
-            re.sub(r"\n{2,}", "\n", chunk.strip())
-            for chunk in final_chunks
-            if chunk.strip() != ""
-        ]
 if __name__ == '__main__':
+
     # 模拟 ProgressTicker
     def mock_tick(count):
         print(f"Processed {count} items.")
-    # 准备测试数据
-    test_input = [
-       '''
-       ### 揭开古人类生活的更多谜底
+
+
+    # 准备中文测试文本
+    test_text = '''
+    ### 揭开古人类生活的更多谜底
 本报记者 周飞亚
 “西南地区的旧石器越来越多,长江流 域日益支撑起史前考古的新天地…… 祝贺!”2024 年度全国十大考古新发现公布后, 一位考古人在朋友圈发出这样的感叹｡ 资阳濛溪河遗址群是四川第二个获此殊荣的旧石器考古项目｡2022 年,位于川西高原的稻城皮洛遗址也曾入选｡两个项目的领队,都是四川省文物考古研究院旧石器考古研究所所长郑喆轩｡
 
@@ -184,8 +130,8 @@ if __name__ == '__main__':
 
 五六年,300 余个遗址,多个世界级的发现｡6 年前四川省文物考古研究院旧石器研究室成立时,仅有郑喆轩一人,如今已经有了11 名成员｡这个平均年龄30 岁的年轻团队,将在天府之国继续探索,揭开古人类生活的更多谜底｡
 
-       '''
-    ]
+    '''
+    test_input = [test_text]
 
     # 设置参数
     args = {
@@ -194,17 +140,20 @@ if __name__ == '__main__':
         "encoding_name": "cl100k_base"
     }
 
-    # 调用 run 函数
-    result = run(test_input, args, mock_tick)
-    chunk_list = []
-    # 验证结果
-    if isinstance(result, list) and all(isinstance(chunk, TextChunk) for chunk in result):
-        print("测试通过：返回结果是 TextChunk 对象的列表。")
-        for chunk in result:
-            print(f"文本块: {chunk.text_chunk}")
-            print(f"源文档索引: {chunk.source_doc_indices}")
-            print(f"令牌数量: {chunk.n_tokens}")
-            chunk_list.append(chunk.text_chunk)
-    else:
-        print("测试失败：返回结果不符合预期。")
-    print(chunk_list)
+
+    # 测试当前文件中的 run_tokens 方法
+    print("Testing current file's run_tokens method:")
+    result_run_tokens = run_tokens(test_input, args, mock_tick)
+    for chunk in result_run_tokens:
+        print(f"文本块: {chunk.text_chunk}")
+        print(f"源文档索引: {chunk.source_doc_indices}")
+        print(f"令牌数量: {chunk.n_tokens}")
+        print("-" * 20)
+
+    # 测试当前文件中的 run_sentences 方法
+    print("Testing current file's run_sentences method:")
+    result_run_sentences = run_sentences(test_input, args, mock_tick)
+    for chunk in result_run_sentences:
+        print(f"Text chunk: {chunk.text_chunk}")
+        print(f"Source doc indices: {chunk.source_doc_indices}")
+        print("-" * 20)
