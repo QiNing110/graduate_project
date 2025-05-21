@@ -125,16 +125,22 @@ class SummarizeExtractor:
         self, items: str | tuple[str, str] | list[str], descriptions: list[str]
     ):
         """Summarize descriptions using the LLM."""
+        print("=======================进入summarize_descriptions=======================")
+        entity_name_key = json.dumps(items, ensure_ascii=False)
+        print(f"_entity_name_key:{entity_name_key}")
+        descriptions = json.dumps(
+                    sorted(descriptions), ensure_ascii=False
+                )
+        print(f"descriptions:{descriptions}")
         response = await self._llm(
             self._summarization_prompt,
             name="summarize",
             variables={
-                self._entity_name_key: json.dumps(items),
-                self._input_descriptions_key: json.dumps(
-                    sorted(descriptions), ensure_ascii=False
-                ),
+                self._entity_name_key: entity_name_key,
+                self._input_descriptions_key: descriptions
             },
             model_parameters={"max_tokens": self._max_summary_length},
         )
+        print(str(response.output))
         # Calculate result
         return str(response.output)

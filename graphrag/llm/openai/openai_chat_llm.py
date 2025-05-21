@@ -50,6 +50,8 @@ class OpenAIChatLLM(BaseLLM[CompletionInput, CompletionOutput]):
             *history,
             {"role": "user", "content": input},
         ]
+        if '给定一个或两个实体，以及一系列与同一实体或一组实体相关的描述' in input:
+            print(input)
         completion = await self.client.chat.completions.create(
             messages=messages, **args
         )

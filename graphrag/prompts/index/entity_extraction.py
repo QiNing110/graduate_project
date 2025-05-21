@@ -61,12 +61,14 @@ GRAPH_EXTRACTION_PROMPT = """
 TechGlobal 原是一家上市公司，于 2014 年被 Vision Holdings 收购转为私有企业。这家成熟的芯片设计公司表示，其产品为 85%的高端智能手机提供动力支持。
 ######################
 输出：
+```
 ("entity"{tuple_delimiter}TechGlobal{tuple_delimiter}ORGANIZATION{tuple_delimiter}TechGlobal 是一家现已在环球交易所上市的公司，其产品为 85% 的高端智能手机提供动力支持。)
 {record_delimiter}
 ("entity"{tuple_delimiter}Vision Holdings{tuple_delimiter}ORGANIZATION{tuple_delimiter}Vision Holdings是一家此前拥有TechGlobal公司的企业。)
 {record_delimiter}
 ("relationship"{tuple_delimiter}TechGlobal{tuple_delimiter}Vision Holdings{tuple_delimiter}Vision Holdings公司自 2014 年起就一直拥有TechGlobal公司，直至目前。{tuple_delimiter}5)
 {completion_delimiter}
+```
 ######################
 
 
