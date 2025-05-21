@@ -35,6 +35,7 @@ def run_global_search(
 
     Loads index files required for global search and calls the Query API.
     """
+
     start_time = time.time()
     root = root_dir.resolve()
     config = load_config(root, config_filepath)
@@ -107,7 +108,7 @@ def run_global_search(
     reporter.success(f"Global Search Response:\n{response}")
     # NOTE: we return the response and context data here purely as a complete demonstration of the API.
     # External users should use the API directly to get the response and context data.
-    return response, context_data
+    return response, query,context_data
 
 
 def run_local_search(

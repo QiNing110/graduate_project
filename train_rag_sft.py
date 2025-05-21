@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level='INFO')
 
 
-class Train_dataset(torch.utils.data.Dataset):
+class Train_dataset(torch.utils.response.Dataset):
     def __init__(self, config, tokenizer):
         self.config = config
         self.tokenizer = tokenizer
@@ -155,7 +155,7 @@ class SFTMetric:
 
 def table_to_csv_string(table):
     rows = [",".join(table.columns)] 
-    for row in table.data:
+    for row in table.response:
         rows.append(",".join(map(str, row)))
     return "\n".join(rows)
 
